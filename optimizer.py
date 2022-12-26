@@ -11,6 +11,7 @@ class Optimizer:
                 self.compare = lambda x, y: x if x.fitness < y.fitness else y
             case _:
                 raise Exception("Unsupported state. Supported states: 'min', 'max'")
+        self.extr = extr
         self.objective_function = objective_function
         self.boundaries = np.array(boundaries)
         self.fittest = None

@@ -29,4 +29,7 @@ class Individual:
     def __setitem__(self, key, value):
         self.genome[key] = value
 
+    def calculate_fitness(self, objective_function):
+        self.fitness = objective_function(self.genome)
+
     # добавить оператор сравнения или нет

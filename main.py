@@ -18,29 +18,26 @@ if __name__ == '__main__':
     boundaries_x = (0., 2.)
     boundaries_y = (0., 2.)
 
-    opt1 = MonteCarlo(
-        objective_function=objective_function,
-        boundaries=(boundaries_x, boundaries_y),
-        extr="max",
-        max_iterations=max_iter)
     opt = SurvivalOfTheFittestAlgorithm(
         objective_function=objective_function,
         boundaries=(boundaries_x, boundaries_y),
         extr="max",
         precision=0.001,
-        initial_population_size=1000,
-        max_iterations=1000
+        initial_population_size=1,
+        max_iterations=10000,
+        dispersion_a=0.4,
+        dispersion_b=2.5e-6
     )
-    optimum = opt1.optimize()
+    optimum = opt.optimize()
     print(optimum.genome, optimum.fitness)
-    print(opt1.get_sample_size())
+    print(opt.get_population_size())
 
     # graphics
 
     # scatter plot
     fig, ax = plt.subplots()
-    points = np.array([(ind[0], ind[1]) for ind in opt1.sample])
-    color = [xx.fitness for xx in opt1.sample]
+    points = np.array([(ind[0], ind[1]) for ind in opt.population])
+    color = [xx.fitness for xx in opt.population]
     sctr = ax.scatter(points[:, 0],
                       points[:, 1],
                       c=color,
