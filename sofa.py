@@ -16,7 +16,6 @@ class SurvivalOfTheFittestAlgorithm(Optimizer):
     def __init__(self, *,
                  objective_function,
                  boundaries,
-                 extr,
                  precision: float = 0.01,
                  initial_population_size: int = 1000,
                  max_iterations: int = 1000,
@@ -24,8 +23,7 @@ class SurvivalOfTheFittestAlgorithm(Optimizer):
                  dispersion_b: float = 2.5e-6
                  ):
         super().__init__(objective_function=objective_function,
-                         boundaries=boundaries,
-                         extr=extr)
+                         boundaries=boundaries)
         self.precision = precision
         self.initial_population_size = initial_population_size
         self.max_iterations = max_iterations
@@ -110,20 +108,14 @@ class SurvivalOfTheFittestAlgorithm(Optimizer):
         self.population_weights.append(0.0)
 
         # пересчитываем веса
-        if self.extr == "max":
-            self.calculate_weights()  # calculate_weights_max()
-        elif self.extr == "min":
-            self.calculate_weights()  # calculate_weights_min()
+        self.calculate_weights()
 
     def optimize(self):
         self.generate_initial_population()
 
         while (self.__dispersion(len(self.population)) > self.precision
-               and len(self.population) + self.initial_population_size <= self.max_iterations):
+               and len(self.population) + self.initial_population_size
+               <= self.max_iterations):
             self.generate_child()
 
-        # outdated
-        if self.extr == "max":
-            return self.max
-        elif self.extr == "min":
-            return self.min
+        return self.max

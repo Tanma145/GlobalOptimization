@@ -18,26 +18,25 @@ if __name__ == '__main__':
     boundaries_x = (0., 2.)
     boundaries_y = (0., 2.)
 
-    opt = SurvivalOfTheFittestAlgorithm(
+    solver = SurvivalOfTheFittestAlgorithm(
         objective_function=objective_function,
         boundaries=(boundaries_x, boundaries_y),
-        extr="max",
         precision=0.001,
-        initial_population_size=1,
+        initial_population_size=100,
         max_iterations=10000,
         dispersion_a=0.4,
         dispersion_b=2.5e-6
     )
-    optimum = opt.optimize()
+    optimum = solver.optimize()
     print(optimum.genome, optimum.fitness)
-    print(opt.get_population_size())
+    print(solver.get_population_size())
 
     # graphics
 
     # scatter plot
     fig, ax = plt.subplots()
-    points = np.array([(ind[0], ind[1]) for ind in opt.population])
-    color = [xx.fitness for xx in opt.population]
+    points = np.array([(ind[0], ind[1]) for ind in solver.population])
+    color = [xx.fitness for xx in solver.population]
     sctr = ax.scatter(points[:, 0],
                       points[:, 1],
                       c=color,
@@ -69,6 +68,6 @@ if __name__ == '__main__':
              boundaries_y[0] + y_margin * y_length,
              s,
              bbox=box)
-    plt.colorbar(sctr, ax=ax)
+    fig.colorbar(sctr, ax=ax)
     fig.tight_layout()
     plt.show()
