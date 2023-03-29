@@ -1,10 +1,7 @@
 from math import *
 import random
-import copy
 import numpy as np
 from scipy.stats import qmc
-from individual import *
-from optimizer import Optimizer
 
 
 def inverse_probability(y, epsilon, x_0, x_min, x_max):
@@ -13,28 +10,33 @@ def inverse_probability(y, epsilon, x_0, x_min, x_max):
     return epsilon * np.tan(y * np.arctan(a) + (1.0 - y) * np.arctan(b)) + x_0
 
 
-class SurvivalOfTheFittestAlgorithm(Optimizer):
+class SurvivalOfTheFittestAlgorithm:
     def __init__(self, *,
                  objective_function,
                  boundaries,
                  precision: float = 0.01,
                  initial_population_size: int = 1000,
+                 init='latinhypercube',
                  max_iterations: int = 1000,
                  dispersion_a: float = 0.4,
                  dispersion_b: float = 2.5e-6,
                  ):
-        super().__init__(objective_function=objective_function,
-                         boundaries=boundaries)
+        self.objective_function = objective_function
+        self.boundaries = np.array(boundaries)  # size = (2, D)
         self.precision = precision
         self.initial_population_size = initial_population_size
+        self.init = init  # change?
         self.max_iterations = max_iterations
         self.dispersion_a = dispersion_a
         self.dispersion_b = dispersion_b
 
+        self.dimension = boundaries.shape[1]
         self.population = []
+        self.fitness_list = []
         self.population_weights = []
-        self.max = None
+        self.max = None  # change?
         self.min = None
+        self.max_point = None
 
     def __dispersion(self, k):
         kk = k - self.initial_population_size + 1
@@ -44,62 +46,60 @@ class SurvivalOfTheFittestAlgorithm(Optimizer):
         return len(self.population)
 
     def calculate_weights(self):
-        width = self.max.fitness - self.min.fitness
+        height = self.max - self.min
         power = len(self.population)
 
         if len(self.population) == 1:
             self.population_weights[0] = 1
             return
 
-        for i, ind in enumerate(self.population):
-            self.population_weights[i] = ((ind.fitness - self.min.fitness)
-                                          / width) ** power
-
-    def new_generate_initial_population(self):
-        match self.init:
-            case 'latinhypercube':
-                sampler = qmc.LatinHypercube(d=len(self.boundaries))
-            case _:
-                raise ValueError("Wrong init value")
-        sample = sampler.random(n=self.initial_population_size)
-        for s, bounds in zip(sample, self.boundaries):
-            pass
-
-        self.population = list(sample)
-        self.calculate_weights()
+        for i, _ in enumerate(self.population):
+            self.population_weights[i] = (
+                (self.fitness_list[i] - self.min) / height) ** power
 
     def generate_initial_population(self):
-        self.population.clear()
-        self.population_weights.clear()
+        self.fitness_list = [0] * self.initial_population_size
+        self.population_weights = [0] * self.initial_population_size
+        if isinstance(self.init, str):
+            if self.init == 'latinhypercube':
+                sampler = qmc.LatinHypercube(d=self.dimension)
+                scale_arr = self.boundaries[1] - self.boundaries[0]
+                shift_arr = self.boundaries[0]
+                self.population = (shift_arr + sampler.random(
+                    n=self.initial_population_size)*scale_arr)
+            else:
+                raise ValueError("Unacceptable init_population.")
+        else:
+            if (np.shape(self.init)
+                    == (self.initial_population_size, self.dimension)):
+                self.population = self.init_population
+            else:
+                raise ValueError("Initial population shape doesn't match"
+                                 "dimension and/or initial population size.")
 
-        ind = get_random_individual(self.objective_function, self.boundaries)
-        self.max = ind
-        self.min = ind
-        self.population.append(ind)
-        self.population_weights.append(0.0)
+        for i in range(self.initial_population_size):
+            self.fitness_list[i] = self.objective_function(self.population[i])
 
-        for _ in range(self.initial_population_size - 1):
-            ind = get_random_individual(self.objective_function,
-                                        self.boundaries)
-            if ind.fitness > self.max.fitness:
-                self.max = ind
-            if ind.fitness < self.min.fitness:
-                self.min = ind
+        self.update_max_min()
+        self.population = list(self.population)
+        self.calculate_weights()
 
-            self.population.append(ind)
-            self.population_weights.append(0.0)
-
-        self.calculate_weights()  # calculate_weights_max()
+    def update_max_min(self):
+        index_max = np.argmax(self.fitness_list)
+        self.max = self.fitness_list[index_max]
+        self.max_point = self.population[index_max]
+        self.min = np.min(self.fitness_list)
 
     def generate_child(self):
-        # выбираем случайную особь с учётом весов
+        # Селекция
+        # случайно выбираем базовую особь с учётом весов
         base = random.choices(self.population,
                                    weights=self.population_weights,
                                    k=1)[0]
 
         mutant = np.empty_like(base)
 
-        # мутация
+        # Мутация
         for i in range(len(self.boundaries)):
             mutant[i] = inverse_probability(
                 random.random(),
@@ -109,15 +109,17 @@ class SurvivalOfTheFittestAlgorithm(Optimizer):
                 self.boundaries[i][1])
 
         # считаем фитнес новой особи и проверяем на максимум/минимум
-        mutant.calculate_fitness(self.objective_function)
-        if mutant.fitness > self.max.fitness:
-            self.max = mutant
-        if mutant.fitness < self.min.fitness:
-            self.min = mutant
+        mutant_fitness = self.objective_function(mutant)
+        if mutant_fitness > self.fitness_list[self.index_max]:
+            self.max = mutant_fitness
+            self.max_point = mutant
+        if mutant_fitness < self.fitness_list[self.index_min]:
+            self.min = mutant_fitness
 
         # добавляем особь к популяции
         self.population.append(mutant)
         self.population_weights.append(0.0)
+        self.fitness_list.append(0.0)
 
         # пересчитываем веса
         self.calculate_weights()
@@ -129,4 +131,5 @@ class SurvivalOfTheFittestAlgorithm(Optimizer):
                and len(self.population) < self.max_iterations):
             self.generate_child()
 
-        return self.max
+        return (self.population[self.index_max],
+                self.fitness_list[self.index_max])

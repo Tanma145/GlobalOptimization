@@ -51,6 +51,7 @@ class DifEnvSOFA:
         self.index_max = 0  # change?
         self.index_min = 0
         self.rng = default_rng()
+        self.history =[]
 
     def init_population(self):
         if isinstance(self.init, str):
@@ -102,11 +103,6 @@ class DifEnvSOFA:
 
     def mutate(self, i):
         rand_arr = self.rng.uniform(size=self.dimension)
-        # mutant = v_inverse_probability(rand_arr,
-        #                                self.dispersion(i),
-        #                                self.population[i],
-        #                                self.boundaries[0],
-        #                                self.boundaries[1])
         mutant = np.empty(self.dimension)
         for j in range(self.dimension):
             mutant[j] = inverse_probability(rand_arr[j],
@@ -163,8 +159,8 @@ class DifEnvSOFA:
     def maximize(self):
         self.init_population()
         while self.generation * self.population_size < self.maxiter:
+            self.history.append(self.population)
             self.next_generation()
 
         return (self.population[self.index_max],
                 self.fitness_arr[self.index_max])
-

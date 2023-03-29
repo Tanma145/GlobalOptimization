@@ -10,9 +10,9 @@ class MonteCarlo(Optimizer):
                  boundaries,
                  extr,
                  max_iterations: int = 1000):
-        super().__init__(objective_function=objective_function,
-                         boundaries=boundaries,
-                         extr=extr)
+        self.objective_function = objective_function
+        self.boundaries = np.array(boundaries)  # size = (2, D)
+        self.extr = extr
         self.rng = default_rng()
         self.fittest = Individual(self.rng.uniform(self.boundaries[:, 0],
                                                    self.boundaries[:, 1],
