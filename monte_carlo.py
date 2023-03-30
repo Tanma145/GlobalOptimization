@@ -1,10 +1,8 @@
 import numpy as np
 from numpy.random import default_rng
-from individual import *
-from optimizer import Optimizer
 
 
-class MonteCarlo(Optimizer):
+class MonteCarlo():
     def __init__(self, *,
                  objective_function,
                  boundaries,

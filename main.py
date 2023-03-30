@@ -6,7 +6,6 @@ import sys
 import cProfile
 import pstats
 
-from individual import Individual
 from monte_carlo import MonteCarlo
 from sofa import *
 from desofa import DifEnvSOFA
@@ -21,7 +20,7 @@ if __name__ == '__main__':
                            [2., 2.]])
     boundaries_x = (0., 2.)
     boundaries_y = (0., 2.)
-    maxiter = 100
+    maxiter = 1000
 
     with cProfile.Profile() as pr:
         solver1 = DifEnvSOFA(objective_function=objective_function,
@@ -37,22 +36,22 @@ if __name__ == '__main__':
     stats1.sort_stats(pstats.SortKey.TIME)
     stats1.dump_stats(filename='profiling_DifEnvSOFA.prof')
 
-    # with cProfile.Profile() as pr:
-    #     solver = SurvivalOfTheFittestAlgorithm(
-    #         objective_function=objective_function,
-    #         boundaries=boundaries,
-    #         precision=0.0,
-    #         initial_population_size=100,
-    #         max_iterations=maxiter,
-    #         dispersion_a=0.4,
-    #         dispersion_b=2.5e-6
-    #     )
-    #     optimum = solver.optimize()
-    #
-    # stats2 = pstats.Stats(pr)
-    # stats2.sort_stats(pstats.SortKey.TIME)
-    # stats2.print_stats()
-    # stats2.dump_stats(filename='profiling_SOFA.prof')
+    with cProfile.Profile() as pr:
+        solver = SurvivalOfTheFittestAlgorithm(
+            objective_function=objective_function,
+            boundaries=boundaries,
+            precision=0.0,
+            initial_population_size=100,
+            max_iterations=maxiter,
+            dispersion_a=0.4,
+            dispersion_b=2.5e-6
+        )
+        opt_point1, opt1 = solver.optimize()
+
+    stats2 = pstats.Stats(pr)
+    stats2.sort_stats(pstats.SortKey.TIME)
+    stats2.print_stats()
+    stats2.dump_stats(filename='profiling_SOFA.prof')
 
     # print(opt_point, opt)
     # print(solver1.population_size * solver1.generation)

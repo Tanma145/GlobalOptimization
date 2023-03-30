@@ -60,6 +60,7 @@ class SurvivalOfTheFittestAlgorithm:
     def generate_initial_population(self):
         self.fitness_list = [0] * self.initial_population_size
         self.population_weights = [0] * self.initial_population_size
+
         if isinstance(self.init, str):
             if self.init == 'latinhypercube':
                 sampler = qmc.LatinHypercube(d=self.dimension)
@@ -72,23 +73,26 @@ class SurvivalOfTheFittestAlgorithm:
         else:
             if (np.shape(self.init)
                     == (self.initial_population_size, self.dimension)):
-                self.population = self.init_population
+                self.population = self.init
             else:
                 raise ValueError("Initial population shape doesn't match"
                                  "dimension and/or initial population size.")
 
-        for i in range(self.initial_population_size):
-            self.fitness_list[i] = self.objective_function(self.population[i])
+        self.max = self.objective_function(self.population[0])
+        self.max_point = self.population[0]
+        self.min = self.objective_function(self.population[0])
 
-        self.update_max_min()
+        for i in range(self.initial_population_size):
+            objf = self.objective_function(self.population[i])
+            self.fitness_list[i] = objf
+            if objf > self.max:
+                self.max = objf
+                self.max_point = self.population[i]
+            if objf < self.min:
+                self.min = objf
+
         self.population = list(self.population)
         self.calculate_weights()
-
-    def update_max_min(self):
-        index_max = np.argmax(self.fitness_list)
-        self.max = self.fitness_list[index_max]
-        self.max_point = self.population[index_max]
-        self.min = np.min(self.fitness_list)
 
     def generate_child(self):
         # Селекция
@@ -119,7 +123,7 @@ class SurvivalOfTheFittestAlgorithm:
         # добавляем особь к популяции
         self.population.append(mutant)
         self.population_weights.append(0.0)
-        self.fitness_list.append(0.0)
+        self.fitness_list.append(mutant_fitness)
 
         # пересчитываем веса
         self.calculate_weights()
@@ -131,5 +135,4 @@ class SurvivalOfTheFittestAlgorithm:
                and len(self.population) < self.max_iterations):
             self.generate_child()
 
-        return (self.population[self.index_max],
-                self.fitness_list[self.index_max])
+        return self.max_point, self.max
